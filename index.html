@@ -443,6 +443,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
 
 <script>
   let tasks = [];
@@ -451,7 +452,7 @@
   let shownHintsCount = 0;
   let currentUser = JSON.parse(localStorage.getItem('user')) || null;
 
-  // Инициализация редактора CodeMirror с подсветкой SQL
+// Инициализация редактора CodeMirror с подсветкой SQL
   const editor = CodeMirror.fromTextArea(document.getElementById('sqlQuery'), {
     mode: 'text/x-sql',
     theme: 'dracula',
@@ -459,6 +460,7 @@
     indentWithTabs: true,
     smartIndent: true,
     lineWrapping: true,
+    autoCloseBrackets: true, // <-- ДОБАВЬ ЭТУ СТРОЧКУ
     extraKeys: {
       "Ctrl-Enter": function() { checkAnswer(); }
     }
