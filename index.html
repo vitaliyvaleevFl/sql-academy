@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SQL Academy — Интерактивный тренажер</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-hover: #334155;
+      --border-color: #334155;
+      --accent-blue: #38bdf8;
+      --accent-green: #22c55e;
+      --accent-gold: #f59e0b;
+      --accent-red: #ef4444;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      
+      --editor-bg: #020617;
+      --editor-text: #38bdf8;
+      --ide-header-bg: #0f172a;
+      --line-num-border: #1e293b;
+      --line-num-text: #475569;
+
+      --scrollbar-thumb: #334155;
+      --scrollbar-thumb-hover: #475569;
+      --scrollbar-track: #020617;
+    }
+
+    body.light-theme {
+      --bg-dark: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-hover: #f1f5f9;
+      --border-color: #cbd5e1;
+      --accent-blue: #0284c7;
+      --accent-green: #16a34a;
+      --accent-gold: #d97706;
+      --accent-red: #dc2626;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+
+      --editor-bg: #ffffff;
+      --editor-text: #0f172a;
+      --ide-header-bg: #f1f5f9;
+      --line-num-border: #e2e8f0;
+      --line-num-text: #94a3b8;
+
+      --scrollbar-thumb: #cbd5e1;
+      --scrollbar-thumb-hover: #94a3b8;
+      --scrollbar-track: #ffffff;
+    }
+
+    * { box-sizing: border-box; }
+
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: var(--scrollbar-track); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; border: 2px solid var(--scrollbar-track); }
+    ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+
+    body {
+      margin: 0; padding: 0; font-family: 'Inter', sans-serif;
+      background-color: var(--bg-dark); color: var(--text-main);
+      display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .header {
+      height: 56px; background-color: var(--bg-card); border-bottom: 1px solid var(--border-color);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+      transition: background-color 0.3s, border-color 0.3s;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 16px; }
+
+    .menu-toggle {
+      background: transparent; border: none; color: var(--text-main);
+      font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      padding: 4px; border-radius: 4px; transition: background 0.2s;
+    }
+    .menu-toggle:hover { background: var(--bg-hover); }
+
+    .logo { font-weight: 700; font-size: 18px; color: var(--accent-blue); display: flex; align-items: center; gap: 8px; }
+
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+
+    .theme-toggle-btn {
+      background: var(--bg-hover); border: 1px solid var(--border-color); color: var(--text-main);
+      padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;
+      display: flex; align-items: center; gap: 6px; transition: all 0.2s;
+    }
+
+    .auth-block input {
+      background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-main);
+      padding: 8px 12px; border-radius: 6px; font-size: 13px; margin-right: 6px;
+    }
+    .auth-block button {
+      padding: 8px 16px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 13px;
+    }
+    .btn-login { background: var(--accent-blue); color: #ffffff; }
+    .btn-reg { background: var(--bg-hover); color: var(--text-main); }
+
+    .app-body { display: flex; flex: 1; overflow: hidden; }
+
+    .sidebar-left {
+      width: 320px; background-color: var(--bg-card); border-right: 1px solid var(--border-color);
+      display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden;
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s, padding 0.3s;
+      white-space: nowrap; 
+    }
+    
+    .sidebar-left-inner { padding: 20px; }
+
+    .sidebar-left.collapsed {
+      width: 0; padding: 0; border: none; opacity: 0; pointer-events: none;
+    }
+
+    .sidebar-title-row {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+    }
+    .sidebar-title {
+      font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--text-muted); margin: 0;
+    }
+
+    /* СТИЛИ ПРОГРЕСС-БАРА */
+    .progress-container {
+      background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 8px;
+      padding: 10px 12px; margin-bottom: 16px;
+    }
+    .progress-info {
+      display: flex; justify-content: space-between; font-size: 12px; font-weight: 600;
+      color: var(--text-muted); margin-bottom: 6px;
+    }
+    .progress-bar-bg {
+      width: 100%; height: 6px; background: var(--bg-hover); border-radius: 3px; overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%; background: var(--accent-green); width: 0%; transition: width 0.4s ease;
+    }
+
+    .task-group-header {
+      font-size: 12px; font-weight: 600; color: var(--text-muted);
+      margin: 16px 0 8px 0; display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; user-select: none; padding: 4px 0;
+    }
+    .task-group-header:first-child { margin-top: 0; }
+    .task-group-header-left { display: flex; align-items: center; gap: 6px; color: var(--text-main); }
+    
+    .task-group-content {
+      max-height: 0; overflow: hidden; transition: max-height 0.4s ease-out;
+    }
+    .task-group-content.open { max-height: 4000px; }
+
+    .task-item {
+      padding: 12px 14px; margin-bottom: 8px; border: 1px solid var(--border-color);
+      border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between;
+      align-items: center; background: var(--bg-dark); transition: all 0.2s;
+    }
+    .task-item:hover { border-color: var(--accent-blue); }
+    .task-item.active { border-color: var(--accent-blue); box-shadow: 0 0 0 1px var(--accent-blue); background: var(--bg-card); }
+    .task-item.completed { border-color: rgba(34, 197, 94, 0.4); background: rgba(34, 197, 94, 0.08); }
+
+    .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px; }
+    .badge-free { background: rgba(34, 197, 94, 0.15); color: var(--accent-green); }
+    .badge-pro { background: rgba(245, 158, 11, 0.15); color: var(--accent-gold); }
+
+    .content-area { flex: 1; display: flex; position: relative; }
+    .main-content { flex: 1; padding: 24px; display: flex; flex-direction: column; overflow-y: auto; }
+
+    .task-header { margin-bottom: 16px; }
+    .task-title-wrapper { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+    .task-title { font-size: 20px; margin: 0; }
+    
+    .diff-badge { font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 6px; border: 1px solid; }
+    .diff-easy { color: var(--accent-green); border-color: rgba(34, 197, 94, 0.3); background: rgba(34, 197, 94, 0.05); }
+    .diff-medium { color: var(--accent-gold); border-color: rgba(245, 158, 11, 0.3); background: rgba(245, 158, 11, 0.05); }
+    .diff-hard { color: var(--accent-red); border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.05); }
+
+    .task-desc { color: var(--text-main); font-size: 14px; line-height: 1.6; margin-bottom: 16px; background: var(--bg-hover); padding: 12px 16px; border-radius: 8px; border-left: 3px solid var(--accent-blue);}
+
+    #hintsContainer { margin-bottom: 16px; }
+    .hint-callout {
+      background: rgba(245, 158, 11, 0.07); border-left: 3px solid var(--accent-gold);
+      color: var(--text-main); padding: 10px 14px; border-radius: 4px; font-size: 13px;
+      margin-bottom: 8px; display: flex; align-items: start; gap: 10px;
+    }
+    .btn-get-hint {
+      background: transparent; border: 1px solid var(--accent-gold); color: var(--accent-gold);
+      padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;
+      font-weight: 600; transition: all 0.2s;
+    }
+    .btn-get-hint:hover { background: var(--accent-gold); color: #0f172a; }
+
+    .ide-container {
+      border: 1px solid var(--border-color); border-radius: 8px; background: var(--editor-bg);
+      margin-bottom: 16px; display: flex; flex-direction: column;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.3s, border-color 0.3s;
+      resize: vertical; overflow: hidden; min-height: 200px; height: 250px;
+    }
+    .ide-header {
+      height: 36px; flex-shrink: 0; background: var(--ide-header-bg); border-bottom: 1px solid var(--border-color);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 12px;
+      transition: background-color 0.3s, border-color 0.3s;
+    }
+    .ide-header-left { display: flex; align-items: center; gap: 12px; }
+    .ide-dots { display: flex; gap: 6px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-red { background: #ef4444; } .dot-yellow { background: #f59e0b; } .dot-green { background: #10b981; }
+
+    .ide-tab {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-muted);
+      background: var(--bg-card); padding: 4px 12px; border-radius: 4px 4px 0 0;
+      border-top: 2px solid var(--accent-blue); display: flex; align-items: center; gap: 6px;
+    }
+
+    /* КНОПКА ОЧИСТКИ КОНСОЛИ В ШАПКЕ РЕДАКТОРА */
+    .btn-clear-console {
+      background: transparent; border: none; color: var(--text-muted); font-size: 11px;
+      cursor: pointer; font-family: 'Inter', sans-serif; display: flex; align-items: center; gap: 4px;
+      padding: 2px 6px; border-radius: 4px; transition: all 0.2s;
+    }
+    .btn-clear-console:hover { background: var(--bg-hover); color: var(--text-main); }
+
+    .ide-body { display: flex; flex: 1; position: relative; overflow: hidden; }
+
+    .line-numbers {
+      padding: 12px 8px; color: var(--line-num-text); font-family: 'JetBrains Mono', monospace;
+      font-size: 14px; text-align: right; border-right: 1px solid var(--line-num-border);
+      user-select: none; pointer-events: none; overflow-y: hidden; min-width: 40px;
+      background: var(--editor-bg); transition: color 0.3s, border-color 0.3s, background-color 0.3s;
+    }
+    .line-numbers div { height: 21px; line-height: 21px; }
+
+    textarea#sqlQuery {
+      flex: 1; padding: 12px; background: transparent; border: none; color: var(--editor-text);
+      font-family: 'JetBrains Mono', monospace; font-size: 14px; line-height: 21px;
+      outline: none; resize: none; overflow-y: auto; overflow-x: auto;
+      white-space: pre; transition: color 0.3s;
+    }
+
+    .editor-footer { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .btn-run {
+      background: var(--accent-green); color: #ffffff;
+      font-weight: 700; border: none; padding: 10px 24px; border-radius: 6px;
+      cursor: pointer; font-size: 14px; transition: opacity 0.2s;
+    }
+    .btn-run:hover { opacity: 0.9; }
+
+    .shortcut-tip { font-size: 12px; color: var(--text-muted); }
+
+    #result { margin-top: 10px; }
+    .table-wrapper { max-width: 100%; overflow-x: auto; margin-top: 10px; border-radius: 8px; }
+    table {
+      width: 100%; border-collapse: collapse; background: var(--bg-card); border: 1px solid var(--border-color);
+      font-size: 13px; transition: background-color 0.3s, border-color 0.3s;
+    }
+    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border-color); }
+    th { background: var(--bg-hover); color: var(--text-muted); font-weight: 600; }
+
+    .status-msg { padding: 12px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; margin-bottom: 12px; }
+    .status-msg.success { background: rgba(34, 197, 94, 0.15); color: var(--accent-green); border: 1px solid var(--accent-green); }
+    .status-msg.error { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid #ef4444; }
+
+    .resizer {
+      width: 4px; background-color: var(--border-color); cursor: ew-resize;
+      transition: background-color 0.2s; z-index: 10;
+    }
+    .resizer:hover, .resizer:active { background-color: var(--accent-blue); }
+
+    .sidebar-right {
+      width: 290px; min-width: 220px; max-width: 600px; background-color: var(--bg-card);
+      padding: 20px; overflow: auto; transition: background-color 0.3s;
+    }
+
+    .table-card {
+      background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 8px;
+      margin-bottom: 12px; overflow: hidden; transition: all 0.3s;
+    }
+    .table-card:hover { border-color: var(--accent-blue); }
+
+    .table-card.highlighted {
+      border-color: var(--accent-gold);
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+    }
+    .table-card.highlighted .table-header-left { color: var(--accent-gold); }
+
+    .table-header {
+      padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--accent-blue);
+      display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+      background: var(--bg-card); user-select: none; transition: color 0.3s;
+    }
+    .table-header-left { display: flex; align-items: center; transition: color 0.3s; }
+    .toggle-icon { font-size: 10px; color: var(--text-muted); transition: transform 0.3s; }
+    .table-columns { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; background: var(--bg-dark); }
+    .table-columns.open { max-height: 600px; border-top: 1px solid var(--border-color); }
+    .col-list { list-style: none; padding: 8px 14px 4px 14px; margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+    .col-list li { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dashed var(--border-color); }
+    .col-list li:last-child { border-bottom: none; }
+    .col-name { color: var(--text-main); display: flex; align-items: center; }
+
+    .type-badge { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; font-family: 'Inter', sans-serif;}
+    .type-int { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); }
+    .type-text { background: rgba(34, 197, 94, 0.15); color: var(--accent-green); }
+    .type-default { background: rgba(148, 163, 184, 0.15); color: var(--text-muted); }
+
+    .preview-toggle-wrapper { padding: 0 14px 12px 14px; border-bottom: 1px dashed var(--border-color); }
+    .preview-data { display: none; padding: 10px 14px; overflow-x: auto; }
+    .btn-show-data {
+      background: transparent; border: 1px solid var(--accent-blue); color: var(--accent-blue);
+      padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;
+    }
+    .btn-show-data.active { background: rgba(56, 189, 248, 0.1); }
+
+    .content-area.blurred { filter: blur(8px); pointer-events: none; user-select: none; }
+    .paywall-overlay {
+      position: absolute; inset: 0; background: rgba(15, 23, 42, 0.7); display: flex;
+      align-items: center; justify-content: center; z-index: 30;
+    }
+    .paywall-card {
+      background: var(--bg-card); padding: 32px; border-radius: 12px; border: 1px solid var(--border-color);
+      text-align: center; max-width: 360px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <button class="menu-toggle" onclick="toggleSidebar()" title="Скрыть/Показать каталог">☰</button>
+    <div class="logo">⚡ SQL Academy</div>
+  </div>
+  
+  <div class="header-actions">
+    <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn">🌙 Тёмная</button>
+    <div class="auth-block" id="authBlock"></div>
+  </div>
+</div>
+
+<div class="app-body">
+  <div class="sidebar-left" id="sidebarLeft">
+    <div class="sidebar-left-inner">
+      <div class="sidebar-title-row">
+        <h3 class="sidebar-title">Каталог заданий</h3>
+      </div>
+
+      <div class="progress-container">
+        <div class="progress-info">
+          <span>Прогресс курса</span>
+          <span id="progressText">0 / 70 (0%)</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progressBarFill"></div>
+        </div>
+      </div>
+
+      <div id="taskList">Загрузка...</div>
+    </div>
+  </div>
+
+  <div style="flex: 1; position: relative; display: flex;">
+    
+    <div id="paywallOverlay" class="paywall-overlay" style="display: none;">
+      <div class="paywall-card">
+        <h3 style="margin-top:0;">🔒 PRO Доступ</h3>
+        <p style="color: var(--text-muted); font-size: 14px;">Откройте доступ ко всей базе задач и продвинутым темам!</p>
+        <button style="background: var(--accent-gold); border:none; color:#0f172a; padding:12px 24px; font-weight:700; border-radius:6px; cursor:pointer;" onclick="alert('Оплата...')">Активировать PRO за 490 ₽</button>
+      </div>
+    </div>
+
+    <div id="contentArea" class="content-area">
+      <div class="main-content">
+        <div class="task-header">
+          <div class="task-title-wrapper">
+            <h2 class="task-title" id="taskTitle">Выберите задачу</h2>
+            <div id="taskDiffBadge"></div>
+          </div>
+          <div class="task-desc" id="taskDesc"></div>
+          <div id="hintsContainer"></div>
+        </div>
+
+        <div class="ide-container">
+          <div class="ide-header">
+            <div class="ide-header-left">
+              <div class="ide-dots">
+                <div class="dot dot-red"></div>
+                <div class="dot dot-yellow"></div>
+                <div class="dot dot-green"></div>
+              </div>
+              <div class="ide-tab">📄 console.sql</div>
+            </div>
+            <button class="btn-clear-console" onclick="clearConsole()">🗑 Очистить</button>
+          </div>
+          <div class="ide-body">
+            <div class="line-numbers" id="lineNumbers"><div>1</div></div>
+            <textarea id="sqlQuery" placeholder="-- Введите ваш SQL запрос здесь..." spellcheck="false"></textarea>
+          </div>
+        </div>
+
+        <div class="editor-footer">
+          <button type="button" class="btn-run" onclick="checkAnswer()">▶ Выполнить запрос</button>
+          <div class="shortcut-tip">💡 Подсказка: нажмите <b>Ctrl + Enter</b> для запуска</div>
+        </div>
+
+        <div id="result"></div>
+      </div>
+      
+      <div class="resizer" id="dragMe"></div>
+
+      <div class="sidebar-right" id="sidebarRight">
+        <div>
+          <div class="sidebar-title">📊 Схема БД</div>
+          <div id="schemaContainer">Загрузка...</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let tasks = [];
+  let currentTaskId = null;
+  let currentTaskHints = [];
+  let shownHintsCount = 0;
+  let currentUser = JSON.parse(localStorage.getItem('user')) || null;
+
+  function toggleSidebar() {
+    document.getElementById('sidebarLeft').classList.toggle('collapsed');
+  }
+
+  // Очистка консоли
+  function clearConsole() {
+    textarea.value = '';
+    updateLineNumbers();
+    document.getElementById('result').innerHTML = '';
+    textarea.focus();
+  }
+
+  const resizer = document.getElementById('dragMe');
+  const rightPanel = document.getElementById('sidebarRight');
+  let isResizing = false;
+
+  resizer.addEventListener('mousedown', (e) => {
+    isResizing = true;
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+    let newWidth = window.innerWidth - e.clientX;
+    if (newWidth < 220) newWidth = 220;
+    if (newWidth > 600) newWidth = 600;
+    rightPanel.style.width = newWidth + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (isResizing) {
+      isResizing = false;
+      document.body.style.cursor = 'default';
+      document.body.style.userSelect = '';
+    }
+  });
+
+  const textarea = document.getElementById('sqlQuery');
+  const lineNumbers = document.getElementById('lineNumbers');
+
+  function updateLineNumbers() {
+    const lines = textarea.value.split('\n').length;
+    let linesHTML = '';
+    for (let i = 1; i <= lines; i++) {
+      linesHTML += `<div>${i}</div>`;
+    }
+    lineNumbers.innerHTML = linesHTML;
+  }
+
+  textarea.addEventListener('input', updateLineNumbers);
+  textarea.addEventListener('scroll', () => {
+    lineNumbers.scrollTop = textarea.scrollTop;
+  });
+
+  // Горячие клавиши, Tab и автоподстановка скобок/кавычек
+  textarea.addEventListener('keydown', function(e) {
+    // 1. Обработка клавиши Tab (отступы)
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = this.selectionStart;
+      const end = this.selectionEnd;
+      const tabSpaces = '  ';
+      this.value = this.value.substring(0, start) + tabSpaces + this.value.substring(end);
+      this.selectionStart = this.selectionEnd = start + tabSpaces.length;
+      updateLineNumbers();
+    }
+    
+    // 2. Автоматическое закрытие скобок и кавычек
+    const pairs = {
+      '(': ')',
+      "'": "'",
+      '"': '"',
+      '[': ']'
+    };
+
+    if (pairs[e.key]) {
+      e.preventDefault();
+      const start = this.selectionStart;
+      const end = this.selectionEnd;
+      const openChar = e.key;
+      const closeChar = pairs[e.key];
+
+      // Вставляем пару символов, а курсор оставляем между ними
+      this.value = this.value.substring(0, start) + openChar + this.value.substring(start, end) + closeChar + this.value.substring(end);
+      this.selectionStart = start + 1;
+      this.selectionEnd = end + 1;
+      updateLineNumbers();
+    }
+
+    // 3. Ctrl + Enter для выполнения запроса
+    if (e.ctrlKey && e.key === 'Enter') {
+      e.preventDefault();
+      checkAnswer();
+    }
+  });
+
+  function toggleTheme() {
+    const isLight = document.body.classList.toggle('light-theme');
+    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    document.getElementById('themeBtn').innerHTML = isLight ? '☀️ Светлая' : '🌙 Тёмная';
+  }
+
+  function applySavedTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') {
+      document.body.classList.add('light-theme');
+      document.getElementById('themeBtn').innerHTML = '☀️ Светлая';
+    }
+  }
+
+  function updateAuthUI() {
+    const authBlock = document.getElementById('authBlock');
+    if (currentUser) {
+      authBlock.innerHTML = `
+        <span style="font-size:13px; margin-right:10px;">👤 <b>${currentUser.email}</b> ${currentUser.isPaid ? '<b style="color:var(--accent-gold)">[PRO]</b>' : ''}</span>
+        <button onclick="logout()" class="btn-reg">Выйти</button>
+      `;
+    } else {
+      authBlock.innerHTML = `
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="password" placeholder="Пароль">
+        <button onclick="login()" class="btn-login">Войти</button>
+        <button onclick="register()" class="btn-reg">Регистрация</button>
+      `;
+    }
+  }
+
+  async function register() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (data.success) {
+      currentUser = data;
+      localStorage.setItem('user', JSON.stringify(data));
+      updateAuthUI();
+      await loadTasks();
+    } else alert(data.error);
+  }
+
+  async function login() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (data.success) {
+      currentUser = data;
+      localStorage.setItem('user', JSON.stringify(data));
+      updateAuthUI();
+      await loadTasks();
+    } else alert(data.error);
+  }
+
+  function logout() {
+    currentUser = null;
+    localStorage.removeItem('user');
+    updateAuthUI();
+    loadTasks();
+  }
+
+  async function init() {
+    applySavedTheme();
+    updateAuthUI();
+    await loadTasks();
+    await loadSchema();
+  }
+
+  const diffMap = {
+    'easy': { label: '🟢 Базовые', class: 'diff-easy', name: 'Легко' },
+    'medium': { label: '🟡 Средние', class: 'diff-medium', name: 'Средне' },
+    'hard': { label: '🔴 Продвинутые', class: 'diff-hard', name: 'Сложно' }
+  };
+
+  // Обновление прогресс-бара
+  function updateProgressBar() {
+    const completedCount = tasks.filter(t => t.isCompleted).length;
+    const totalCount = tasks.length;
+    const percent = Math.round((completedCount / totalCount) * 100);
+
+    document.getElementById('progressText').innerText = `${completedCount} / ${totalCount} (${percent}%)`;
+    document.getElementById('progressBarFill').style.width = percent + '%';
+  }
+
+  async function loadTasks() {
+    const token = currentUser ? currentUser.token : null;
+    const res = await fetch('/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token })
+    });
+    tasks = await res.json();
+
+    updateProgressBar();
+
+    const listDiv = document.getElementById('taskList');
+    listDiv.innerHTML = '';
+
+    const grouped = { easy: [], medium: [], hard: [] };
+    tasks.forEach(t => {
+      if (grouped[t.difficulty]) grouped[t.difficulty].push(t);
+      else grouped.easy.push(t);
+    });
+
+    ['easy', 'medium', 'hard'].forEach(diff => {
+      if (grouped[diff].length === 0) return;
+
+      const groupHeader = document.createElement('div');
+      groupHeader.className = 'task-group-header';
+      groupHeader.innerHTML = `
+        <div class="task-group-header-left">${diffMap[diff].label} <span style="color:var(--text-muted); font-size:10px; margin-left:4px;">(${grouped[diff].length})</span></div>
+        <div class="toggle-icon" style="transform: rotate(0deg);">▼</div>
+      `;
+      listDiv.appendChild(groupHeader);
+
+      const groupContent = document.createElement('div');
+      groupContent.className = 'task-group-content'; // Свернуты по умолчанию
+
+      grouped[diff].forEach(task => {
+        const item = document.createElement('div');
+        item.className = 'task-item';
+        item.id = `task-item-${task.id}`;
+        if (task.isCompleted) item.classList.add('completed');
+        item.onclick = () => selectTask(task.id);
+        
+        const badgeType = task.isFree ? '<span class="badge badge-free">FREE</span>' : '<span class="badge badge-pro">PRO</span>';
+
+        item.innerHTML = `<span style="font-size:13px; max-width: 180px; overflow: hidden; text-overflow: ellipsis;">${task.title}</span> ${badgeType}`;
+        groupContent.appendChild(item);
+      });
+
+      listDiv.appendChild(groupContent);
+
+      groupHeader.onclick = () => {
+        const isOpen = groupContent.classList.contains('open');
+        groupContent.classList.toggle('open');
+        groupHeader.querySelector('.toggle-icon').style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+      };
+    });
+
+    if (tasks.length > 0 && !currentTaskId) selectTask(tasks[0].id);
+    else if (currentTaskId) {
+      document.querySelectorAll('.task-item').forEach(el => el.classList.remove('active'));
+      const activeItem = document.getElementById(`task-item-${currentTaskId}`);
+      if(activeItem) activeItem.classList.add('active');
+    }
+  }
+
+  async function loadSchema() {
+    const res = await fetch('/api/schema');
+    const schema = await res.json();
+    const container = document.getElementById('schemaContainer');
+    container.innerHTML = '';
+
+    const tableIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>`;
+
+    schema.forEach((item, index) => {
+      const card = document.createElement('div');
+      card.className = 'table-card';
+      card.setAttribute('data-table-name', item.table);
+
+      const header = document.createElement('div');
+      header.className = 'table-header';
+      header.innerHTML = `
+        <div class="table-header-left">${tableIcon} ${item.table}</div>
+        <div class="toggle-icon">▼</div>
+      `;
+
+      const colContainer = document.createElement('div');
+      colContainer.className = 'table-columns';
+      if (index === 0) colContainer.classList.add('open');
+      if (index === 0) header.querySelector('.toggle-icon').style.transform = 'rotate(180deg)';
+      
+      let colsHTML = '<ul class="col-list">';
+      item.columns.forEach(col => {
+        const isPk = col.name === 'id';
+        const keyIcon = isPk ? '<span title="Primary Key" style="color:var(--accent-gold); margin-right:6px;">🔑</span>' : '<span style="width:20px; display:inline-block;"></span>';
+        
+        const typeLower = col.type.toLowerCase();
+        let typeClass = 'type-default';
+        if (typeLower.includes('int')) typeClass = 'type-int';
+        if (typeLower.includes('text') || typeLower.includes('varchar')) typeClass = 'type-text';
+
+        colsHTML += `<li><div class="col-name" style="font-weight:${isPk?'600':'400'}">${keyIcon} ${col.name}</div><div class="type-badge ${typeClass}">${col.type}</div></li>`;
+      });
+      colsHTML += '</ul>';
+
+      let previewHTML = '';
+      if (item.preview && item.preview.columns.length > 0) {
+        let tableHTML = '<table><thead><tr>';
+        item.preview.columns.forEach(c => tableHTML += `<th>${c}</th>`);
+        tableHTML += '</tr></thead><tbody>';
+        item.preview.values.forEach(row => {
+          tableHTML += '<tr>';
+          row.forEach(val => tableHTML += `<td>${val}</td>`);
+          tableHTML += '</tr>';
+        });
+        tableHTML += '</tbody></table>';
+
+        previewHTML = `
+          <div class="preview-toggle-wrapper">
+            <button class="btn-show-data" onclick="toggleDataPreview(this)">📋 Показать данные</button>
+          </div>
+          <div class="preview-data">
+            <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">Превью 3 строк из ${item.table}:</div>
+            <div class="table-wrapper">${tableHTML}</div>
+          </div>
+        `;
+      }
+
+      colContainer.innerHTML = colsHTML + previewHTML;
+
+      header.onclick = (e) => {
+        if (e.target.classList.contains('btn-show-data')) return;
+        const isOpen = colContainer.classList.contains('open');
+        colContainer.classList.toggle('open');
+        header.querySelector('.toggle-icon').style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+      };
+
+      card.appendChild(header);
+      card.appendChild(colContainer);
+      container.appendChild(card);
+    });
+    
+    if (currentTaskId) {
+      highlightActiveTables(tasks.find(t => t.id === currentTaskId));
+    }
+  }
+
+  function toggleDataPreview(button) {
+    const tableColumnsContainer = button.closest('.table-columns');
+    const previewDataDiv = tableColumnsContainer.querySelector('.preview-data');
+    const isVisible = window.getComputedStyle(previewDataDiv).display !== 'none';
+    
+    previewDataDiv.style.display = isVisible ? 'none' : 'block';
+    button.classList.toggle('active', !isVisible);
+    button.innerHTML = isVisible ? '📋 Показать данные' : '👀 Скрыть данные';
+  }
+
+  function highlightActiveTables(task) {
+    if (!task) return;
+    const requiredTables = task.tables || [];
+    
+    document.querySelectorAll('.table-card').forEach(card => {
+      card.classList.remove('highlighted');
+      
+      const tableName = card.getAttribute('data-table-name');
+      if (requiredTables.includes(tableName)) {
+        card.classList.add('highlighted');
+        const colContainer = card.querySelector('.table-columns');
+        const headerIcon = card.querySelector('.toggle-icon');
+        if (!colContainer.classList.contains('open')) {
+          colContainer.classList.add('open');
+          headerIcon.style.transform = 'rotate(180deg)';
+        }
+      } else {
+        const colContainer = card.querySelector('.table-columns');
+        const headerIcon = card.querySelector('.toggle-icon');
+        if (colContainer.classList.contains('open')) {
+          colContainer.classList.remove('open');
+          headerIcon.style.transform = 'rotate(0deg)';
+        }
+      }
+    });
+  }
+
+  function selectTask(id) {
+    currentTaskId = id;
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+
+    document.getElementById('taskTitle').innerText = task.title;
+    
+    const diffInfo = diffMap[task.difficulty || 'easy'];
+    document.getElementById('taskDiffBadge').innerHTML = `<div class="diff-badge ${diffInfo.class}">${diffInfo.name}</div>`;
+    
+    document.getElementById('taskDesc').innerText = task.description;
+    
+    currentTaskHints = task.hints || [];
+    shownHintsCount = 0;
+    renderHintsUI();
+    
+    highlightActiveTables(task);
+
+    document.getElementById('sqlQuery').value = '';
+    updateLineNumbers();
+
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = '';
+
+    const contentArea = document.getElementById('contentArea');
+    const paywallOverlay = document.getElementById('paywallOverlay');
+
+    const isPaidUser = currentUser ? currentUser.isPaid : false;
+
+    if (!task.isFree && !isPaidUser) {
+      contentArea.classList.add('blurred');
+      paywallOverlay.style.display = 'flex';
+    } else {
+      contentArea.classList.remove('blurred');
+      paywallOverlay.style.display = 'none';
+    }
+
+    document.querySelectorAll('.task-item').forEach(el => el.classList.remove('active'));
+    const activeItem = document.getElementById(`task-item-${id}`);
+    if (activeItem) activeItem.classList.add('active');
+  }
+
+  function renderHintsUI() {
+    const container = document.getElementById('hintsContainer');
+    container.innerHTML = '';
+
+    if (currentTaskHints.length === 0) return;
+
+    const block = document.createElement('div');
+    
+    if (shownHintsCount < currentTaskHints.length) {
+      block.innerHTML = `<button class="btn-get-hint" onclick="showNextHint()">🤔 ${shownHintsCount === 0 ? 'Получить подсказку' : 'Нужна ещё наводка?'}</button>`;
+    }
+
+    for (let i = 0; i < shownHintsCount; i++) {
+      const hint = document.createElement('div');
+      hint.className = 'hint-callout';
+      hint.innerHTML = `<span>💡</span><div>${currentTaskHints[i]}</div>`;
+      block.appendChild(hint);
+    }
+    
+    container.appendChild(block);
+  }
+
+  function showNextHint() {
+    if (shownHintsCount < currentTaskHints.length) {
+      shownHintsCount++;
+      renderHintsUI();
+    }
+  }
+
+  async function checkAnswer() {
+    if (!currentTaskId) return;
+
+    const query = document.getElementById('sqlQuery').value;
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = '<div style="color:var(--text-muted)">Выполняем запрос...</div>';
+
+    const token = currentUser ? currentUser.token : null;
+
+    try {
+      const response = await fetch('/api/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId: currentTaskId, userQuery: query, token })
+      });
+      const data = await response.json();
+
+      if (!data.success && data.error) {
+        resultDiv.innerHTML = `<div class="status-msg error"><b>Ошибка SQL:</b> ${data.error}</div>`;
+        return;
+      }
+
+      let resTable = `<div class="status-msg ${data.isCorrect ? 'success' : 'error'}">${data.message}</div>`;
+      
+      if (data.data && data.data.length > 0) {
+        const columns = data.data[0].columns;
+        const values = data.data[0].values;
+        resTable += '<table><thead><tr>';
+        columns.forEach(col => resTable += `<th>${col}</th>`);
+        resTable += '</tr></thead><tbody>';
+        values.forEach(row => {
+          resTable += '<tr>';
+          row.forEach(val => resTable += `<td>${val}</td>`);
+          resTable += '</tr>';
+        });
+        resTable += '</tbody></table>';
+      }
+
+      resultDiv.innerHTML = resTable;
+
+      if (data.isCorrect) {
+        const activeItem = document.getElementById(`task-item-${currentTaskId}`);
+        if (activeItem) activeItem.classList.add('completed');
+        
+        const t = tasks.find(x => x.id === currentTaskId);
+        if (t) {
+          t.isCompleted = true;
+          updateProgressBar();
+        }
+      }
+
+    } catch (err) {
+      resultDiv.innerHTML = `<div class="status-msg error">Ошибка связи с сервером!</div>`;
+    }
+  }
+
+  init();
+</script>
+
+</body>
+</html>
