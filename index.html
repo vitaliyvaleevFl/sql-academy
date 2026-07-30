@@ -2,11 +2,14 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SQL Academy — Интерактивный тренажер</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
 
   <style>
     :root {
@@ -21,11 +24,9 @@
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
       
-      --editor-bg: #020617;
-      --editor-text: #38bdf8;
-      --ide-header-bg: #0f172a;
-      --line-num-border: #1e293b;
-      --line-num-text: #475569;
+      --editor-bg: #282a36;
+      --editor-text: #f8f8f2;
+      --ide-header-bg: #1e1f29;
 
       --scrollbar-thumb: #334155;
       --scrollbar-thumb-hover: #475569;
@@ -47,8 +48,6 @@
       --editor-bg: #ffffff;
       --editor-text: #0f172a;
       --ide-header-bg: #f1f5f9;
-      --line-num-border: #e2e8f0;
-      --line-num-text: #94a3b8;
 
       --scrollbar-thumb: #cbd5e1;
       --scrollbar-thumb-hover: #94a3b8;
@@ -57,7 +56,7 @@
 
     * { box-sizing: border-box; }
 
-    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: var(--scrollbar-track); border-radius: 4px; }
     ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; border: 2px solid var(--scrollbar-track); }
     ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
@@ -72,45 +71,46 @@
     .header {
       height: 56px; background-color: var(--bg-card); border-bottom: 1px solid var(--border-color);
       display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
-      transition: background-color 0.3s, border-color 0.3s;
+      transition: background-color 0.3s, border-color 0.3s; flex-shrink: 0;
     }
 
-    .header-left { display: flex; align-items: center; gap: 16px; }
+    .header-left { display: flex; align-items: center; gap: 12px; }
 
     .menu-toggle {
       background: transparent; border: none; color: var(--text-main);
       font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;
-      padding: 4px; border-radius: 4px; transition: background 0.2s;
+      padding: 6px; border-radius: 4px; transition: background 0.2s;
     }
     .menu-toggle:hover { background: var(--bg-hover); }
 
     .logo { font-weight: 700; font-size: 18px; color: var(--accent-blue); display: flex; align-items: center; gap: 8px; }
 
-    .header-actions { display: flex; align-items: center; gap: 12px; }
+    .header-actions { display: flex; align-items: center; gap: 10px; }
 
     .theme-toggle-btn {
       background: var(--bg-hover); border: 1px solid var(--border-color); color: var(--text-main);
-      padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;
-      display: flex; align-items: center; gap: 6px; transition: all 0.2s;
+      padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;
+      display: flex; align-items: center; gap: 6px; transition: all 0.2s; white-space: nowrap;
     }
 
+    .auth-block { display: flex; align-items: center; }
     .auth-block input {
       background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-main);
-      padding: 8px 12px; border-radius: 6px; font-size: 13px; margin-right: 6px;
+      padding: 6px 10px; border-radius: 6px; font-size: 13px; margin-right: 6px; width: 110px;
     }
     .auth-block button {
-      padding: 8px 16px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 13px;
+      padding: 6px 12px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 13px; white-space: nowrap;
     }
     .btn-login { background: var(--accent-blue); color: #ffffff; }
     .btn-reg { background: var(--bg-hover); color: var(--text-main); }
 
-    .app-body { display: flex; flex: 1; overflow: hidden; }
+    .app-body { display: flex; flex: 1; overflow: hidden; position: relative; }
 
     .sidebar-left {
       width: 320px; background-color: var(--bg-card); border-right: 1px solid var(--border-color);
       display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden;
-      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s, padding 0.3s;
-      white-space: nowrap; 
+      transition: width 0.3s ease, transform 0.3s ease, opacity 0.2s;
+      white-space: nowrap; flex-shrink: 0; z-index: 40;
     }
     
     .sidebar-left-inner { padding: 20px; }
@@ -127,7 +127,6 @@
       color: var(--text-muted); margin: 0;
     }
 
-    /* СТИЛИ ПРОГРЕСС-БАРА */
     .progress-container {
       background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 8px;
       padding: 10px 12px; margin-bottom: 16px;
@@ -169,11 +168,11 @@
     .badge-free { background: rgba(34, 197, 94, 0.15); color: var(--accent-green); }
     .badge-pro { background: rgba(245, 158, 11, 0.15); color: var(--accent-gold); }
 
-    .content-area { flex: 1; display: flex; position: relative; }
+    .content-area { flex: 1; display: flex; position: relative; overflow: hidden; }
     .main-content { flex: 1; padding: 24px; display: flex; flex-direction: column; overflow-y: auto; }
 
     .task-header { margin-bottom: 16px; }
-    .task-title-wrapper { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+    .task-title-wrapper { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
     .task-title { font-size: 20px; margin: 0; }
     
     .diff-badge { font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 6px; border: 1px solid; }
@@ -196,12 +195,13 @@
     }
     .btn-get-hint:hover { background: var(--accent-gold); color: #0f172a; }
 
+    /* Настройки редактора CodeMirror */
     .ide-container {
       border: 1px solid var(--border-color); border-radius: 8px; background: var(--editor-bg);
       margin-bottom: 16px; display: flex; flex-direction: column;
       box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
       transition: background-color 0.3s, border-color 0.3s;
-      resize: vertical; overflow: hidden; min-height: 200px; height: 250px;
+      overflow: hidden; min-height: 200px; height: 230px;
     }
     .ide-header {
       height: 36px; flex-shrink: 0; background: var(--ide-header-bg); border-bottom: 1px solid var(--border-color);
@@ -219,7 +219,6 @@
       border-top: 2px solid var(--accent-blue); display: flex; align-items: center; gap: 6px;
     }
 
-    /* КНОПКА ОЧИСТКИ КОНСОЛИ В ШАПКЕ РЕДАКТОРА */
     .btn-clear-console {
       background: transparent; border: none; color: var(--text-muted); font-size: 11px;
       cursor: pointer; font-family: 'Inter', sans-serif; display: flex; align-items: center; gap: 4px;
@@ -227,24 +226,17 @@
     }
     .btn-clear-console:hover { background: var(--bg-hover); color: var(--text-main); }
 
-    .ide-body { display: flex; flex: 1; position: relative; overflow: hidden; }
+    .ide-body { flex: 1; position: relative; overflow: hidden; }
 
-    .line-numbers {
-      padding: 12px 8px; color: var(--line-num-text); font-family: 'JetBrains Mono', monospace;
-      font-size: 14px; text-align: right; border-right: 1px solid var(--line-num-border);
-      user-select: none; pointer-events: none; overflow-y: hidden; min-width: 40px;
-      background: var(--editor-bg); transition: color 0.3s, border-color 0.3s, background-color 0.3s;
-    }
-    .line-numbers div { height: 21px; line-height: 21px; }
-
-    textarea#sqlQuery {
-      flex: 1; padding: 12px; background: transparent; border: none; color: var(--editor-text);
-      font-family: 'JetBrains Mono', monospace; font-size: 14px; line-height: 21px;
-      outline: none; resize: none; overflow-y: auto; overflow-x: auto;
-      white-space: pre; transition: color 0.3s;
+    /* Принудительно растягиваем CodeMirror внутри нашего контейнера */
+    .CodeMirror {
+      height: 100% !important;
+      font-family: 'JetBrains Mono', monospace !important;
+      font-size: 14px !important;
+      line-height: 1.5 !important;
     }
 
-    .editor-footer { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .editor-footer { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 12px; }
     .btn-run {
       background: var(--accent-green); color: #ffffff;
       font-weight: 700; border: none; padding: 10px 24px; border-radius: 6px;
@@ -275,7 +267,7 @@
 
     .sidebar-right {
       width: 290px; min-width: 220px; max-width: 600px; background-color: var(--bg-card);
-      padding: 20px; overflow: auto; transition: background-color 0.3s;
+      padding: 20px; overflow: auto; transition: background-color 0.3s; flex-shrink: 0;
     }
 
     .table-card {
@@ -326,6 +318,33 @@
       background: var(--bg-card); padding: 32px; border-radius: 12px; border: 1px solid var(--border-color);
       text-align: center; max-width: 360px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
     }
+
+    @media (max-width: 768px) {
+      .header { padding: 8px 12px; height: auto; min-height: 52px; flex-wrap: wrap; gap: 8px; }
+      .logo { font-size: 16px; }
+      .auth-block input { width: 85px; padding: 4px 6px; font-size: 12px; }
+      .auth-block button { padding: 4px 8px; font-size: 12px; }
+      .theme-toggle-btn { padding: 4px 8px; font-size: 12px; }
+
+      .sidebar-left {
+        position: absolute; top: 0; left: 0; bottom: 0; width: 85vw; max-width: 320px;
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+      }
+      .sidebar-left.collapsed { transform: translateX(-100%); width: 85vw; max-width: 320px; opacity: 0; }
+
+      .content-area { flex-direction: column; overflow-y: auto; }
+      .main-content { padding: 16px 12px; overflow-y: visible; }
+      .resizer { display: none; }
+
+      .sidebar-right {
+        width: 100% !important; max-width: 100%; border-top: 1px solid var(--border-color); padding: 16px 12px;
+      }
+      .editor-footer { flex-direction: column; align-items: stretch; }
+      .btn-run { width: 100%; padding: 12px; font-size: 15px; }
+      .shortcut-tip { display: none; }
+      .ide-container { height: 210px; }
+      .task-title { font-size: 17px; }
+    }
   </style>
 </head>
 <body>
@@ -343,7 +362,7 @@
 </div>
 
 <div class="app-body">
-  <div class="sidebar-left" id="sidebarLeft">
+  <div class="sidebar-left collapsed" id="sidebarLeft">
     <div class="sidebar-left-inner">
       <div class="sidebar-title-row">
         <h3 class="sidebar-title">Каталог заданий</h3>
@@ -397,8 +416,7 @@
             <button class="btn-clear-console" onclick="clearConsole()">🗑 Очистить</button>
           </div>
           <div class="ide-body">
-            <div class="line-numbers" id="lineNumbers"><div>1</div></div>
-            <textarea id="sqlQuery" placeholder="-- Введите ваш SQL запрос здесь..." spellcheck="false"></textarea>
+            <textarea id="sqlQuery"></textarea>
           </div>
         </div>
 
@@ -423,6 +441,9 @@
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+
 <script>
   let tasks = [];
   let currentTaskId = null;
@@ -430,16 +451,27 @@
   let shownHintsCount = 0;
   let currentUser = JSON.parse(localStorage.getItem('user')) || null;
 
+  // Инициализация редактора CodeMirror с подсветкой SQL
+  const editor = CodeMirror.fromTextArea(document.getElementById('sqlQuery'), {
+    mode: 'text/x-sql',
+    theme: 'dracula',
+    lineNumbers: true,
+    indentWithTabs: true,
+    smartIndent: true,
+    lineWrapping: true,
+    extraKeys: {
+      "Ctrl-Enter": function() { checkAnswer(); }
+    }
+  });
+
   function toggleSidebar() {
     document.getElementById('sidebarLeft').classList.toggle('collapsed');
   }
 
-  // Очистка консоли
   function clearConsole() {
-    textarea.value = '';
-    updateLineNumbers();
+    editor.setValue('');
     document.getElementById('result').innerHTML = '';
-    textarea.focus();
+    editor.focus();
   }
 
   const resizer = document.getElementById('dragMe');
@@ -468,69 +500,11 @@
     }
   });
 
-  const textarea = document.getElementById('sqlQuery');
-  const lineNumbers = document.getElementById('lineNumbers');
-
-  function updateLineNumbers() {
-    const lines = textarea.value.split('\n').length;
-    let linesHTML = '';
-    for (let i = 1; i <= lines; i++) {
-      linesHTML += `<div>${i}</div>`;
-    }
-    lineNumbers.innerHTML = linesHTML;
-  }
-
-  textarea.addEventListener('input', updateLineNumbers);
-  textarea.addEventListener('scroll', () => {
-    lineNumbers.scrollTop = textarea.scrollTop;
-  });
-
-  // Горячие клавиши, Tab и автоподстановка скобок/кавычек
-  textarea.addEventListener('keydown', function(e) {
-    // 1. Обработка клавиши Tab (отступы)
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const start = this.selectionStart;
-      const end = this.selectionEnd;
-      const tabSpaces = '  ';
-      this.value = this.value.substring(0, start) + tabSpaces + this.value.substring(end);
-      this.selectionStart = this.selectionEnd = start + tabSpaces.length;
-      updateLineNumbers();
-    }
-    
-    // 2. Автоматическое закрытие скобок и кавычек
-    const pairs = {
-      '(': ')',
-      "'": "'",
-      '"': '"',
-      '[': ']'
-    };
-
-    if (pairs[e.key]) {
-      e.preventDefault();
-      const start = this.selectionStart;
-      const end = this.selectionEnd;
-      const openChar = e.key;
-      const closeChar = pairs[e.key];
-
-      // Вставляем пару символов, а курсор оставляем между ними
-      this.value = this.value.substring(0, start) + openChar + this.value.substring(start, end) + closeChar + this.value.substring(end);
-      this.selectionStart = start + 1;
-      this.selectionEnd = end + 1;
-      updateLineNumbers();
-    }
-
-    // 3. Ctrl + Enter для выполнения запроса
-    if (e.ctrlKey && e.key === 'Enter') {
-      e.preventDefault();
-      checkAnswer();
-    }
-  });
-
   function toggleTheme() {
     const isLight = document.body.classList.toggle('light-theme');
     localStorage.setItem('theme', isLight ? 'light' : 'dark');
     document.getElementById('themeBtn').innerHTML = isLight ? '☀️ Светлая' : '🌙 Тёмная';
+    editor.setOption('theme', isLight ? 'default' : 'dracula');
   }
 
   function applySavedTheme() {
@@ -538,6 +512,7 @@
     if (savedTheme === 'light') {
       document.body.classList.add('light-theme');
       document.getElementById('themeBtn').innerHTML = '☀️ Светлая';
+      editor.setOption('theme', 'default');
     }
   }
 
@@ -545,7 +520,7 @@
     const authBlock = document.getElementById('authBlock');
     if (currentUser) {
       authBlock.innerHTML = `
-        <span style="font-size:13px; margin-right:10px;">👤 <b>${currentUser.email}</b> ${currentUser.isPaid ? '<b style="color:var(--accent-gold)">[PRO]</b>' : ''}</span>
+        <span style="font-size:12px; margin-right:6px;">👤 <b>${currentUser.email}</b> ${currentUser.isPaid ? '<b style="color:var(--accent-gold)">[PRO]</b>' : ''}</span>
         <button onclick="logout()" class="btn-reg">Выйти</button>
       `;
     } else {
@@ -612,7 +587,6 @@
     'hard': { label: '🔴 Продвинутые', class: 'diff-hard', name: 'Сложно' }
   };
 
-  // Обновление прогресс-бара
   function updateProgressBar() {
     const completedCount = tasks.filter(t => t.isCompleted).length;
     const totalCount = tasks.length;
@@ -654,7 +628,7 @@
       listDiv.appendChild(groupHeader);
 
       const groupContent = document.createElement('div');
-      groupContent.className = 'task-group-content'; // Свернуты по умолчанию
+      groupContent.className = 'task-group-content';
 
       grouped[diff].forEach(task => {
         const item = document.createElement('div');
@@ -809,6 +783,10 @@
     const task = tasks.find(t => t.id === id);
     if (!task) return;
 
+    if (window.innerWidth <= 768) {
+      document.getElementById('sidebarLeft').classList.add('collapsed');
+    }
+
     document.getElementById('taskTitle').innerText = task.title;
     
     const diffInfo = diffMap[task.difficulty || 'easy'];
@@ -822,8 +800,7 @@
     
     highlightActiveTables(task);
 
-    document.getElementById('sqlQuery').value = '';
-    updateLineNumbers();
+    editor.setValue('');
 
     const resultDiv = document.getElementById('result');
     resultDiv.innerHTML = '';
@@ -878,7 +855,7 @@
   async function checkAnswer() {
     if (!currentTaskId) return;
 
-    const query = document.getElementById('sqlQuery').value;
+    const query = editor.getValue();
     const resultDiv = document.getElementById('result');
     resultDiv.innerHTML = '<div style="color:var(--text-muted)">Выполняем запрос...</div>';
 
@@ -902,15 +879,15 @@
       if (data.data && data.data.length > 0) {
         const columns = data.data[0].columns;
         const values = data.data[0].values;
-        resTable += '<table><thead><tr>';
+        resTable += '<div class="table-wrapper"><table><thead><tr>';
         columns.forEach(col => resTable += `<th>${col}</th>`);
         resTable += '</tr></thead><tbody>';
         values.forEach(row => {
           resTable += '<tr>';
-          row.forEach(val => resTable += `<td>${val}</td>`);
+          row.forEach(val => tableHTML += `<td>${val}</td>`);
           resTable += '</tr>';
         });
-        resTable += '</tbody></table>';
+        resTable += '</tbody></table></div>';
       }
 
       resultDiv.innerHTML = resTable;
